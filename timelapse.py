@@ -70,6 +70,11 @@ def main():
         print(f"❌ Dossier introuvable : {save_path}")
         return
 
+    # Libérer l'appareil photo
+    subprocess.run(["pkill", "-f", "gvfs-gphoto2-volume-monitor"], capture_output=True)
+    time.sleep(1)
+
+
     # Vérification gphoto2
     check = subprocess.run(["gphoto2", "--auto-detect"], capture_output=True, text=True)
     if check.returncode != 0 or "usb:" not in check.stdout.lower():

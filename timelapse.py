@@ -42,6 +42,26 @@ def take_photo(save_path, index):
 
     return result.returncode == 0
 
+def build_video(save_path, session_name, fps):
+    print(f"\n🎬 Assemblage de la vidéo à {fps} fps...")
+    output = os.path.join(save_path, f"{session_name}.mp4")
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-framerate", str(fps),
+        "-pattern_type", "glob",
+        "-i", os.path.join(save_path, "photo_*.jpg"),
+        "-c:v", "libx264",
+        "-pix_fmt", "yuv420p",
+        output
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode == 0:
+        print(f"✅ Vidéo créée : {output}")
+    else:
+        print(f"❌ Erreur ffmpeg : {result.stderr}")
+
+
 def main():
     print("=== Timelapse gphoto2 ===\n")
 
@@ -49,6 +69,7 @@ def main():
     try:
         intervalle = float(input("Intervalle entre les photos (secondes) : "))
         duree = float(input("Durée totale de la prise (minutes) : "))
+        fps = float(input("Fréquence de la vidéo (fps, ex: 24) : "))
     except ValueError:
         print("❌ Valeur invalide.")
         return
@@ -69,6 +90,12 @@ def main():
     if not os.path.exists(save_path):
         print(f"❌ Dossier introuvable : {save_path}")
         return
+
+    # Création d'un sous-dossier unique pour cette session
+    session_name = datetime.now().strftime("timelapse_%Y%m%d_%H%M%S")
+    save_path = os.path.join(save_path, session_name)
+    os.makedirs(save_path, exist_ok=True)
+    print(f"📂 Dossier de session créé : {save_path}")
 
     # Libérer l'appareil photo
     subprocess.run(["pkill", "-f", "gvfs-gphoto2-volume-monitor"], capture_output=True)
@@ -109,6 +136,10 @@ def main():
         print("\n⛔ Arrêt manuel.")
 
     print(f"\n✅ Terminé — {index - 1} photos prises dans {save_path}")
+
+    # Assemblage de la vidéo
+    if index > 1:
+        build_video(save_path, session_name, fps)
 
 if __name__ == "__main__":
     main()
